@@ -1,0 +1,7 @@
+md5: 3934d06d75a75d9af5b2c565c8f78a10
+outs:
+- md5: b538e3731a132e28dae37f18c442c51e
+  path: bdd100k_images.zip
+  cache: true
+  metric: false
+  persist: false
