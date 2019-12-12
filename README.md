@@ -3,7 +3,7 @@ Tensorflow implementation of Attribute-Controlled Traffic Data Augmentation Usin
 
 
 
-![](docs/myimage2.gif)
+![](docs/screens.gif)
 
 
 
