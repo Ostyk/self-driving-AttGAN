@@ -1,21 +1,24 @@
 import tensorflow as tf
 
-def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=1):
+
+def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=2):
     with tf.variable_scope(name,reuse=reuse):
-        leakyrelu_alpha = 0.2
+        leakyrelu_alpha = 0.25
         num_blocks = 5
         filters = 64
         kernel_size = 4
         strides = 2
+
         # Five intermediate blocks : conv + layer norm + instance norm + leaky relu
         for i in range(num_blocks):
 
-            conv = tf.layers.conv2d(inputs = input_var,
-                                    filters = filters,
-                                    kernel_size = kernel_size,
-                                    padding = 'same',
-                                    #kernel_initializer= tf.contrib.layers.xavier_initializer(),
-                                    strides = strides)
+#             conv = tf.layers.conv2d(inputs = input_var,
+#                                     filters = filters,
+#                                     kernel_size = kernel_size,
+#                                     padding = 'same',
+#                                     kernel_initializer= tf.contrib.layers.xavier_initializer(),
+#                                     strides = strides)
+            conv = conv2d(input_var, filters, kernel_size, kernel_size, strides, strides, name = str(i+1))
             layer_norm = tf.contrib.layers.layer_norm(conv)
             leaky_relu_out = tf.nn.leaky_relu(layer_norm, alpha = leakyrelu_alpha)
 
@@ -26,10 +29,9 @@ def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=
         # Output block : fc(1024) + LN + leaky relu + fc(1)
         flatten_c = tf.contrib.layers.flatten(input_var)
         fc_c = tf.contrib.layers.fully_connected(flatten_c, num_outputs = 1024, activation_fn=None)
-        #dropout_c = tf.nn.dropout(fc_c, 0.2)
-        #layer_norm_c = tf.contrib.layers.layer_norm(dropout_c)
-        #leaky_relu_out_c = tf.nn.leaky_relu(layer_norm_c, alpha = leakyrelu_alpha)
-        leaky_relu_out_c = tf.nn.leaky_relu(fc_c, alpha = leakyrelu_alpha)
+        dropout_c = tf.nn.dropout(fc_c, rate=0.2)
+        layer_norm_c = tf.contrib.layers.layer_norm(dropout_c)
+        leaky_relu_out_c = tf.nn.leaky_relu(layer_norm_c, alpha = leakyrelu_alpha)
         # Classifier output
         flatten_out_c = tf.contrib.layers.flatten(leaky_relu_out_c)
         out_classifier = tf.contrib.layers.fully_connected(flatten_out_c,num_outputs=NUM_CLASSES, activation_fn=None)
@@ -39,7 +41,7 @@ def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=
         # Output block : fc(1024) + LN + leaky relu + fc(NUM_CLASS)
         flatten_d = tf.contrib.layers.flatten(input_var)
         fc_d = tf.contrib.layers.fully_connected(flatten_d, num_outputs = 1024, activation_fn=None)
-        dropout_d = tf.nn.dropout(fc_d, 0.2)
+        dropout_d = tf.nn.dropout(fc_d, rate=0.35)
         layer_norm_d = tf.contrib.layers.layer_norm(dropout_d)
         leaky_relu_out_d = tf.nn.leaky_relu(layer_norm_d, alpha = leakyrelu_alpha)
         # Classifier output
@@ -55,7 +57,7 @@ def conv2d(input_, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.002, name="c
               initializer= tf.contrib.layers.xavier_initializer())
 
         conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding=padding)
-        biases = tf.get_variable('biases', [output_dim], initializer=tf.constant_initializer(0.002))
+        biases = tf.get_variable('biases', [output_dim], initializer=tf.constant_initializer(0.02))
 
         return tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape())
 
@@ -68,7 +70,7 @@ def deconv2d(input_, output_shape, k_h=5, k_w=5, d_h=2, d_w=2, name="deconv2d", 
 
         deconv = tf.nn.conv2d_transpose(input_, w, output_shape=output_shape, strides=[1, d_h, d_w, 1])
 
-        biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.002))
+        biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.02))
 
         return tf.reshape(tf.nn.bias_add(deconv, biases), deconv.get_shape())
 
@@ -93,7 +95,8 @@ def encoder(inputs, name = 'G_encoder', reuse=tf.compat.v1.AUTO_REUSE, is_traini
 
         for i in range(num_blocks):
             conv = conv2d(inputs, filters, kernel_size, kernel_size, strides, strides, name = str(i+1))
-            batch_norm = tf.contrib.layers.layer_norm(conv)
+            #batch_norm = tf.contrib.layers.layer_norm(conv, trainable=is_training)
+            batch_norm = tf.contrib.layers.batch_norm(conv, scale=True, trainable=is_training)
             leaky_relu = tf.nn.leaky_relu(batch_norm, alpha = leakyrelu_alpha)
 
             inputs = leaky_relu
@@ -141,7 +144,8 @@ def decoder(inputs, label, name = 'G_decoder', reuse=None, is_training = True):
             deconv = deconv2d(input_, outout_shape, kernel_size, kernel_size, strides, strides, name = str(ind-1))
             concatenated = tf.concat([deconv, inputs[ind-1]], axis=3)
 
-            batch_norm = tf.contrib.layers.layer_norm(concatenated)
+            #batch_norm = tf.contrib.layers.layer_norm(concatenated)
+            batch_norm = tf.contrib.layers.batch_norm(concatenated, scale=True)
 
             input_ = leaky_relu = tf.nn.relu(batch_norm, name = "ReLU_{}".format(ind))
 
@@ -163,3 +167,36 @@ def gradient_penalty(f, real, fake=None):
         norm = 1e-10 + tf.norm(tf.contrib.slim.flatten(grad), axis=1)
         gp = tf.reduce_mean((norm - 1.)**2)
         return gp
+
+
+def buildMinibatchDiscriminator(features, numFeatures, kernels, kernelDim=5, reuse=False):
+    """
+    taken from https://github.com/matteson/tensorflow-minibatch-discriminator
+    """
+    with tf.variable_scope("discriminator") as scope:
+        if reuse:
+            scope.reuse_variables()
+        # TODO: no undefined dimensions until 1.0 release
+        batchTensor = tf.get_variable('disc_minibatch',
+                       shape=[numFeatures, kernels, kernelDim],
+                       initializer=tf.truncated_normal_initializer(stddev=0.1),
+                       regularizer=slim.l2_regularizer(0.05))
+        
+
+        flatFeatures = slim.flatten(features)
+        multFeatures = tf.einsum('ij,jkl->ikl',flatFeatures, batchTensor)
+        multFeaturesExpanded1 = tf.expand_dims(multFeatures,[1])
+
+        fn = lambda x: x - multFeatures
+
+        multFeaturesDiff = tf.exp(
+            -tf.reduce_sum(
+                tf.abs(
+                    tf.map_fn(fn, multFeaturesExpanded1)
+                ),
+            axis=[3])
+        )
+
+        output = tf.reduce_sum(multFeaturesDiff, axis=[1]) - 1 # differs from paper, but convergence seems better with -1 in my experiments
+    
+    return output

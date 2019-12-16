@@ -44,7 +44,7 @@ class Barkley_Deep_Drive(object):
 
         self.dataset = self.dataset.map(self.decode, num_parallel_calls=num_threads)
 
-        if shuffle:
+        if shuffle is True:
             self.dataset = self.dataset.shuffle(buffer_size)
 
         self.dataset = self.dataset.map(self.normalize)
@@ -111,23 +111,21 @@ def summary(tensor_collection,
 
 def load_checkpoint(ckpt_dir_or_file, session, var_list=None):
     """
-    Load checkpoint
+    Load checkpoint and return epoch_to_restore
     """
     if os.path.isdir(ckpt_dir_or_file):
         ckpt_dir_or_file = tf.train.latest_checkpoint(ckpt_dir_or_file)
 
     restorer = tf.train.Saver(var_list)
     restorer.restore(session, ckpt_dir_or_file)
-    print(' [*] Loading checkpoint succeeds! Copy variables from % s!' % ckpt_dir_or_file)
+    print('[*] Loading checkpoint succeeds! Copy variables from % s!' % ckpt_dir_or_file)
+    epoch_to_restore = int(ckpt_dir_or_file.split("/")[-1].split("_")[1])
+    return epoch_to_restore + 1
+    
 
     
-    
-    
-
-    
-    
-def plot_block_after_epoch(save_path, label_batch, image_batch, step_xa_hat, step_xb_hat,
-                           examples = 3, figsize=(10, 10), plot=False):
+def plot_block_after_epoch(save_path, text_stuff, label_batch, image_batch, step_xa_hat, step_xb_hat,
+                           examples = 3, figsize=(10, 10), plot=False, fontsize=17):
     """
     Function that plots outputs after every epoch
     :param save_path: full path directory with extension
@@ -136,20 +134,20 @@ def plot_block_after_epoch(save_path, label_batch, image_batch, step_xa_hat, ste
     """
     number_of_images = 3
     fig, axes = plt.subplots(examples, number_of_images, figsize=figsize)#,  squeeze=False, sharey=True, sharex=True)
+    fig.suptitle("Epoch: {}\nG_Loss: {:.4f}    D_Loss: {:.4f}".format(*text_stuff.values()), fontsize=fontsize)
     for row in range(examples):
         for column in range(number_of_images):
-            
             if column==0:
-                axes[row,column].set_title(label_batch[row].decode("utf-8"))                           
+                axes[row,column].set_title("$x_a$ {}".format(label_batch[row].decode("utf-8")), fontsize=fontsize)                           
                 axes[row,column].imshow( (image_batch[row] * 255).astype(np.uint8) )
             elif column==1:
-                axes[row,column].set_title("$x_a$ reconstruction")                           
+                axes[row,column].set_title("$x_\hat{a}$ reconstruction", fontsize=fontsize)                           
                 axes[row,column].imshow( (step_xa_hat[row] * 255).astype(np.uint8) )
             elif column==2:
-                axes[row,column].set_title("$x_b$ output")    
+                axes[row,column].set_title("$x_\hat{b}$ output", fontsize=fontsize)    
                 axes[row,column].imshow( (step_xb_hat[row] * 255).astype(np.uint8) )
             axes[row,column].tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-
+    plt.savefig(save_path, bbox_inches = "tight")
     if not plot:
         plt.close()
-    plt.savefig(save_path, bbox_inches = "tight")
+    
