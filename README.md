@@ -1,5 +1,5 @@
 # self-driving-AttGAN
-Tensorflow implementation of Attribute-Controlled Traffic Data Augmentation Using Conditional Generative Models
+- Tensorflow implementation of ![Attribute-Controlled Traffic Data Augmentation Using Conditional Generative Models](docs/attn-gan.pdf)
 
 ## Pre-requisites
 Revamped for the following usage:
