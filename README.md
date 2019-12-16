@@ -21,7 +21,7 @@ $ python code/train.py
 ```
 
 ## sample run for 100 epochs
-![](docs/screens.gif)
+![](docs/latest.gif)
 
 
 
