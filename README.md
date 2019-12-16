@@ -1,5 +1,6 @@
 # self-driving-AttGAN
-- Tensorflow implementation of ![Attribute-Controlled Traffic Data Augmentation Using Conditional Generative Models](docs/attn-gan.pdf)
+- Unofficial Tensorflow implementation of [Attribute-Controlled Traffic Data Augmentation Using Conditional Generative Models](docs/attn-gan.pdf)
+- University project [presentation (PDF)](docs/presentation.pdf). Explains the gist of the paper.
 
 ## Pre-requisites
 Revamped for the following usage:
@@ -8,7 +9,7 @@ Revamped for the following usage:
 
 ## Custom Training
 ```
-$ python code/train.py
+$ python3 code/train.py
     --batch_size 128
     --num_classes 2
     --generation_rate 2
@@ -20,9 +21,13 @@ $ python code/train.py
     --rand_seed 42
 ```
 
-## sample run for 100 epochs
+## sample run for 100+ epochs
 ![](docs/latest.gif)
 
 
-
+## TO DO:
+- testing notebook
+- testing .py file
+- retrieve tf records .py script
+- explore time-of-day interpolation
 
