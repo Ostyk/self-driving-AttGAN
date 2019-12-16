@@ -2,7 +2,7 @@
 - Unofficial Tensorflow implementation of [Attribute-Controlled Traffic Data Augmentation Using Conditional Generative Models](docs/attn-gan.pdf)
 - University project [presentation (PDF)](docs/presentation.pdf). Explains the gist of the paper.
 
-## Pre-requisites
+## Prerequisites
 Revamped for the following usage:
 * Python 3.6
 * Tensorflow-gpu 1.14
