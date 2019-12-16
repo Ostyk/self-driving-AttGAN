@@ -26,8 +26,8 @@ $ python3 code/train.py
 
 
 ## TO DO:
+- retrieve tf records .py script to recreate data to feed network
 - testing notebook
 - testing .py file
-- retrieve tf records .py script
 - explore time-of-day interpolation
 
