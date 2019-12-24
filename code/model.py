@@ -1,6 +1,28 @@
 import tensorflow as tf
 
+def conv2d(input_, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.002, name="conv2d", padding = 'SAME'):
+    with tf.variable_scope(name):
+        w = tf.get_variable('w', [k_h, k_w, input_.get_shape()[-1], output_dim],
+              initializer= tf.contrib.layers.xavier_initializer())
 
+        conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding=padding)
+        biases = tf.get_variable('biases', [output_dim], initializer=tf.constant_initializer(0.02))
+
+        return tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape())
+
+
+def deconv2d(input_, output_shape, k_h=5, k_w=5, d_h=2, d_w=2, name="deconv2d", stddev=0.002, with_w=False):
+    with tf.variable_scope(name):
+        # filter : [height, width, output_channels, in_channels]
+        w = tf.get_variable('w', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
+                            initializer= tf.contrib.layers.xavier_initializer(),)
+
+        deconv = tf.nn.conv2d_transpose(input_, w, output_shape=output_shape, strides=[1, d_h, d_w, 1])
+
+        biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.02))
+
+        return tf.reshape(tf.nn.bias_add(deconv, biases), deconv.get_shape())
+    
 def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=2):
     with tf.variable_scope(name,reuse=reuse):
         leakyrelu_alpha = 0.25
@@ -12,12 +34,6 @@ def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=
         # Five intermediate blocks : conv + layer norm + instance norm + leaky relu
         for i in range(num_blocks):
 
-#             conv = tf.layers.conv2d(inputs = input_var,
-#                                     filters = filters,
-#                                     kernel_size = kernel_size,
-#                                     padding = 'same',
-#                                     kernel_initializer= tf.contrib.layers.xavier_initializer(),
-#                                     strides = strides)
             conv = conv2d(input_var, filters, kernel_size, kernel_size, strides, strides, name = str(i+1))
             layer_norm = tf.contrib.layers.layer_norm(conv)
             leaky_relu_out = tf.nn.leaky_relu(layer_norm, alpha = leakyrelu_alpha)
@@ -49,30 +65,6 @@ def classifier_and_discriminator(input_var, name='C_D', reuse=None, NUM_CLASSES=
         out_discriminator = tf.contrib.layers.fully_connected(flatten_out_d,num_outputs=1, activation_fn=None)
 
         return out_discriminator, out_classifier
-
-
-def conv2d(input_, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.002, name="conv2d", padding = 'SAME'):
-    with tf.variable_scope(name):
-        w = tf.get_variable('w', [k_h, k_w, input_.get_shape()[-1], output_dim],
-              initializer= tf.contrib.layers.xavier_initializer())
-
-        conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding=padding)
-        biases = tf.get_variable('biases', [output_dim], initializer=tf.constant_initializer(0.02))
-
-        return tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape())
-
-
-def deconv2d(input_, output_shape, k_h=5, k_w=5, d_h=2, d_w=2, name="deconv2d", stddev=0.002, with_w=False):
-    with tf.variable_scope(name):
-        # filter : [height, width, output_channels, in_channels]
-        w = tf.get_variable('w', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
-                            initializer= tf.contrib.layers.xavier_initializer(),)
-
-        deconv = tf.nn.conv2d_transpose(input_, w, output_shape=output_shape, strides=[1, d_h, d_w, 1])
-
-        biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.02))
-
-        return tf.reshape(tf.nn.bias_add(deconv, biases), deconv.get_shape())
 
 def encoder(inputs, name = 'G_encoder', reuse=tf.compat.v1.AUTO_REUSE, is_training = True):
     """
