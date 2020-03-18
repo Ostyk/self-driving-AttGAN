@@ -40,6 +40,8 @@ $ python3 code/test.py
     --rand_seed 42
 ```
 
+# Pre-trained model
+https://drive.google.com/file/d/1w7DMeCobR-GtRCgphfGIdZUo0Gwx5aDH/view?usp=sharing (~750mb)
 
 
 ## sample run for 120 epochs
@@ -56,7 +58,6 @@ $ python3 code/test.py
 
 - explore time-of-day interpolation
 - requirements.txt file
-- upload pre-trained model (google drive)
 
 # References
 
